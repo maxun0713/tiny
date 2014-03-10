@@ -9,6 +9,8 @@
 #include <lauxlib.h>
 #include <lualib.h>
 #include <assert.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 struct tiny_env{
 	lua_State *L;

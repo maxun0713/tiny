@@ -16,7 +16,6 @@
 #include <string.h>
 #include <time.h>
 
-
 struct tiny_logger {
 	char* path;
 	FILE* fp;
@@ -26,6 +25,7 @@ struct tiny_logger {
 static const char* LOGGER_MARK[] = {
 	NULL,
 	"RELEASE",
+	"WARN",
 	"ERROR",
 	"DEBUG"
 };
@@ -76,20 +76,31 @@ tlogger_init(const char* path, int level){
 	return TINY_ERROR;
 }
 
+
+void
+tlogger_release(){
+	tlogger_destroy(L);
+}
+
+
 void
 tlog(int level, const char* format,...){
 	T_ERROR_VOID(L)
 	T_ERROR_VOID(L->fp)
 
 	FILE* fp = L->fp;
-	if(level >= L->level){
+	char tmp[64];
+	if(level>0 && level <= L->level){
 		va_list args;
 		va_start(args, format);
 		va_end(args);
 
 		time_t t;
 		time(&t);
-		fprintf(fp, "[%s][%s]", LOGGER_MARK[2],ctime(&t));
+		struct tm* curr = localtime(&t);
+		int n = strftime(tmp, sizeof(tmp), "%D/%H:%M:%S", curr);
+		tmp[n] = '\0';
+		fprintf(fp, "[%s][%s]", tmp, LOGGER_MARK[level]);
 		vfprintf(fp, format, args);
 		fprintf(fp, "\n");
 	}

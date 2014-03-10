@@ -13,7 +13,7 @@ typedef struct tiny_logger logger;
 
 
 int  tlogger_init(const char* path, int level);
-void tlogger_destroy(logger* ptr);
+void tlogger_release();
 void tlog(int level, const char* format,...);
 
 extern logger* L;

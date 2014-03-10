@@ -10,8 +10,8 @@
 
 #include "socket_poll.h"
 
-int tserver_init();
-int tserver_command();
+int tserver_init(short port, const char* addr);
+int tserver_send_command();
 
 
 #endif /* TINY_SERVER_H_ */

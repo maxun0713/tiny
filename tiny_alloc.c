@@ -6,6 +6,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 void*
 talloc(size_t size){
@@ -21,7 +22,7 @@ void*
 tcalloc(size_t size){
 	void *ptr = talloc(size);
 	if(ptr){
-		memcpy(ptr, 0, size);
+		memset(ptr, 0, size);
 		return ptr;
 	}
 

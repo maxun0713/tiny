@@ -9,6 +9,7 @@
 #include "tiny_env.h"
 #include "tiny_config.h"
 #include "tiny_assert.h"
+#include "tiny_start.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -16,6 +17,7 @@
 #include <lauxlib.h>
 #include <lualib.h>
 #include <stdbool.h>
+#include <string.h>
 
 void
 _env_init(lua_State *L){
@@ -56,7 +58,7 @@ _env_optint(const char *key, int opt){
 }
 
 const char*
-_env_optstring(const char *key, const char *opt){
+_env_optstring(const char* key, const char* opt){
 	const char *val = tiny_getenv(key);
 	if(val == NULL){
 		if(opt){
@@ -69,7 +71,7 @@ _env_optstring(const char *key, const char *opt){
 }
 
 bool
-_env_optbool(const char *key, bool opt){
+_env_optbool(const char* key, bool opt){
 	const char *val = tiny_getenv(key);
 	if(val == NULL){
 		if(opt){
@@ -126,7 +128,7 @@ main(int argc, char** argv)
 	_env_init(L);
 	config.daemonlized = _env_optint("daemon", 0);
 	config.nthread = _env_optint("worker", 2);
-	config.logpath = _env_optstring("logpath", "./");
+	config.logpath = strdup(_env_optstring("logpath", "./"));
 
 	start();
 
