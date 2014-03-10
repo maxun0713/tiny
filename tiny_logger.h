@@ -14,7 +14,7 @@ typedef struct tiny_logger logger;
 
 int  tlogger_init(const char* path, int level);
 void tlogger_destroy(logger* ptr);
-void tlog(logger* l, int level, const char* format,...);
+void tlog(int level, const char* format,...);
 
 extern logger* L;
 #endif /* TINY_LOGGER_H_ */

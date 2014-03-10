@@ -36,13 +36,21 @@ logger*
 tlogger_new(const char* path, int level){
 	T_ERROR_PTR(path)
 	logger* ptr =(logger*)talloc(sizeof(logger));
-	ptr->fp = fopen(path, "w");
+	char tmp[1024];
+	int n = snprintf(tmp, sizeof(tmp), "%stserver.log", path);
+	if(n < sizeof(tmp)-1){
+		tmp[n] = '\0';
+	}else{
+		tmp[sizeof(tmp)-1] = '\0';
+	}
+
+	ptr->fp = fopen(tmp, "w");
 	if(!ptr->fp) {
 		tfree(ptr);
 		return NULL;
 	}
 	ptr->level = level;
-	ptr->path = strdup(path);
+	ptr->path = strdup(tmp);
 	return ptr;
 }
 
@@ -69,19 +77,20 @@ tlogger_init(const char* path, int level){
 }
 
 void
-tlog(logger* l, int level, const char* format,...){
-	T_ERROR_VOID(l)
+tlog(int level, const char* format,...){
+	T_ERROR_VOID(L)
+	T_ERROR_VOID(L->fp)
 
-	if(level >= l->level){
+	FILE* fp = L->fp;
+	if(level >= L->level){
 		va_list args;
 		va_start(args, format);
 		va_end(args);
 
 		time_t t;
 		time(&t);
-		T_ERROR_VOID(l->fp)
-		fprintf(l->fp, "[%s][%s]", LOGGER_MARK[level],ctime(&t));
-		vfprintf(l->fp, format, args);
-		fprintf(l->fp, "\n");
+		fprintf(fp, "[%s][%s]", LOGGER_MARK[2],ctime(&t));
+		vfprintf(fp, format, args);
+		fprintf(fp, "\n");
 	}
 }
