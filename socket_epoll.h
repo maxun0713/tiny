@@ -23,7 +23,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <unistd.h>
 static bool
 sp_invalid(poll_fd fd){
     return fd == -1;

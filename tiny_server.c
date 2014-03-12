@@ -8,15 +8,37 @@
 #include "tiny_server.h"
 #include "tiny_alloc.h"
 #include "tiny_assert.h"
+#include "tiny_logger.h"
 #include "socket_poll.h"
 #include <unistd.h>
 #include <errno.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
+#include <string.h>
 
 #define MAX_EVENT 1024
+#define MAX_SOCKET 102400
 #define DEFAULT_BUF_SIZE 0xfffff
+
+struct write_buffer {
+	struct write_buffer * next;
+	char *ptr;
+	int sz;
+	void *buffer;
+};
+
+struct socket {
+	int fd;
+	int id;
+	int type;
+	int size;
+	int64_t wb_size;
+	uintptr_t opaque;
+	struct write_buffer * head;
+	struct write_buffer * tail;
+};
 
 struct tiny_server {
 	poll_fd epfd;
@@ -25,9 +47,9 @@ struct tiny_server {
 	int recvctrl_fd;
 	int sendctrl_fd;
 
-	struct event* ev;
-	char*  send_buf;
-	char*  recv_buf;
+	struct event  ev[MAX_EVENT];
+	struct socket slot[MAX_SOCKET];
+	char   buffer[DEFAULT_BUF_SIZE];
 };
 
 struct request_start {
@@ -40,13 +62,40 @@ struct tiny_server_command {
 	char header[8];
 	union {
 		char dummy[256];
-		struct request_start;
-	};
+		struct request_start reg;
+	}  cmd;
 };
 
 
 
 struct tiny_server* S = NULL;
+
+
+int
+tserver_start_listen(struct tiny_server* server_ptr, short port, const char *addr){
+	T_ERROR_VAL(addr)
+	T_ERROR_VAL(server_ptr);
+	T_ERROR_VAL((server_ptr->listenfd = socket(AF_INET, SOCK_STREAM, 0)) >0)
+	sp_nonblocking(server_ptr->listenfd);
+
+	struct sockaddr_in serv_addr;
+	memset(&serv_addr, 0, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(port);
+	serv_addr.sin_addr.s_addr = inet_addr(addr);
+	T_ERROR_VAL(bind(server_ptr->listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == 0)
+
+	const int flag = 1;
+	struct linger ling = {0, 0};
+	T_ERROR_VAL(setsockopt(server_ptr->listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)) == 0)
+	T_ERROR_VAL(setsockopt(server_ptr->listenfd, SOL_SOCKET, SO_KEEPALIVE, &flag, sizeof(flag)) == 0)
+	T_ERROR_VAL(setsockopt(server_ptr->listenfd, SOL_SOCKET, SO_LINGER, &ling, sizeof(ling)) == 0)
+
+	T_ERROR_VAL(listen(server_ptr->listenfd, 1024) == 0)
+
+	return TINY_OK;
+}
+
 
 int
 tserver_init(short port, const char* addr){
@@ -58,18 +107,12 @@ tserver_init(short port, const char* addr){
 	ptr->recvctrl_fd = pipes[0];
 	ptr->sendctrl_fd = pipes[1];
 	ptr->epfd = sp_create();
-	ptr->ev = talloc(sizeof(struct event) * MAX_EVENT);
-	ptr->send_buf = talloc(DEFAULT_BUF_SIZE);
-	ptr->recv_buf = talloc(DEFAULT_BUF_SIZE);
 
-	ret = tserver_start_listen(port, addr);
+	ret = tserver_start_listen(ptr, port, addr);
 	if(ret){
-		close(ptr->recv_buf);
+		close(ptr->recvctrl_fd);
 		close(ptr->sendctrl_fd);
 		close(ptr->epfd);
-		tfree(ptr->ev);
-		tfree(ptr->send_buf);
-		tfree(ptr->recv_buf);
 		tfree(ptr);
 		return TINY_ERROR;
 	}
@@ -99,27 +142,4 @@ tserver_send_command(char len, char type, struct tiny_server_command* cmd){
 	return TINY_OK;
 }
 
-int
-tserver_start_listen(short port, const char *addr){
-	T_ERROR_VAL(addr)
-	T_ERROR_VAL(S);
-	T_ERROR_VAL((S->listenfd = socket(AF_INET, SOCK_STREAM, 0)) >0)
-	sp_nonblocking(S->listenfd);
 
-	struct sockaddr_in serv_addr;
-	memset(&serv_addr, 0, sizeof(serv_addr));
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(port);
-	serv_addr.sin_addr = inet_addr(addr);
-	T_ERROR_VAL(bind(S->listenfd, &serv_addr, sizeof(serv_addr)) == 0)
-
-	const int flag = 1;
-	struct linger ling = {0, 0};
-	T_ERROR_VAL(setsockopt(S->listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)) == 0)
-	T_ERROR_VAL(setsockopt(S->listenfd, SOL_SOCKET, SO_KEEPALIVE, &flag, sizeof(flag)) == 0)
-	T_ERROR_VAL(setsockopt(S->listenfd, SOL_SOCKET, SO_LINGER, &ling, sizeof(ling)) == 0)
-
-	T_ERROR_VAL(listen(S->listenfd, 1024))
-
-	return TINY_OK;
-}
