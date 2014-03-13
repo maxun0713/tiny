@@ -18,6 +18,9 @@
 #define LOG_LEVEL_ERROR 3
 #define LOG_LEVEL_DEBUG 4
 
+#define SOCKET_TYPE_MIN
+#define SOCKET_TYPE_LISTEN 1
 
+#define SOCKET_TYPE_MAX
 
 #endif /* TINY_CONSTDEF_H_ */

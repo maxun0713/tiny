@@ -11,9 +11,9 @@
 struct tiny_config {
 	int daemonlized;
 	int nthread;
-	char* logpath;
+	const char* logpath;
 	short port;
-	char* addr;
+	const char* addr;
 };
 
 struct tiny_config config;

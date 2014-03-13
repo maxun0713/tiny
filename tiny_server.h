@@ -13,6 +13,7 @@
 
 int tserver_init(short port, const char* addr);
 
+int tserver_poll();
 
 
 #endif /* TINY_SERVER_H_ */

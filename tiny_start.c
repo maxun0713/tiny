@@ -8,6 +8,7 @@
 #include "tiny_assert.h"
 #include "tiny_config.h"
 #include "tiny_logger.h"
+#include "tiny_server.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
