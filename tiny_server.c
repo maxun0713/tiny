@@ -71,6 +71,15 @@ struct tiny_server_command {
 
 struct tiny_server* S = NULL;
 
+static void _init_slot(struct socket* slot, int fd, int type) {
+	T_ERROR_VOID(slot)
+	slot->fd =  fd;
+	slot->type = type;
+	slot->head = NULL;
+	slot->tail = NULL;
+	slot->token = time(NULL);
+	//TODO free buffer
+}
 
 int
 tserver_start_listen(struct tiny_server* server_ptr, short port, const char *addr){
@@ -94,11 +103,10 @@ tserver_start_listen(struct tiny_server* server_ptr, short port, const char *add
 
 	T_ERROR_VAL(listen(server_ptr->listenfd, 1024) == 0)
 
-	server_ptr->slot[server_ptr->listenfd].fd =  server_ptr->listenfd;
-	server_ptr->slot[server_ptr->listenfd].type = SOCKET_TYPE_LISTEN;
-	server_ptr->slot[server_ptr->listenfd].head = NULL;
-	server_ptr->slot[server_ptr->listenfd].tail = NULL;
-	server_ptr->slot[server_ptr->listenfd].token = time(NULL);
+	_init_slot(&server_ptr->slot[server_ptr->listenfd],
+			server_ptr->listenfd,
+			SOCKET_TYPE_LISTEN);
+
 	return TINY_OK;
 }
 
@@ -149,7 +157,7 @@ tserver_send_command(char len, char type, struct tiny_server_command* cmd){
 	return TINY_OK;
 }
 
-int _accept(int fd){
+static int _accept(int fd){
 	struct sockaddr_in cliaddr;
 	socklen_t len = sizeof(cliaddr);
 	memset(&cliaddr, 0, sizeof(cliaddr));
@@ -163,21 +171,43 @@ int _accept(int fd){
 	return ret;
 }
 
+static int _recv(struct socket* ctx){
+	T_ERROR_VAL(ctx)
+	unsigned short len;
+	int fd = ctx->fd;
+	int n = recv(fd, &len, sizeof(len));
+	len = ntohs(len);
+	if(len <0 || len > 0xffff){
+		tlog(LOG_LEVEL_ERROR, "error in recv msg:[invalid len%d]", len);
+
+	}
+
+	return TINY_OK;
+}
+
 int tserver_poll(){
 	int n = sp_wait(S->epfd, S->ev, MAX_EVENT);
 	struct event* ev_ptr = NULL;
 	struct socket* sock_ctx_ptr = NULL;
 	int fd;
-	int i;
+	int i,ret;
 	for(i = 0; i< n; i++){
 		ev_ptr = &(S->ev[i]);
 		sock_ctx_ptr = (struct socket*)ev_ptr->s;
 		fd = sock_ctx_ptr->fd;
-		if(fd == S->listenfd) {//TODO ACCEPT
+		if(fd == S->listenfd) {
+			ret = _accept(fd);
+			if(ret >0 ) {
+				_init_slot(&S->slot[ret], ret, SOCKET_TYPE_CONN);
+				if(sp_add(S->epfd, S->listenfd, &S->slot[ret])){
+					tlog(LOG_LEVEL_ERROR, "error in sp_add:[%s]", strerror(errno));
+				}
+			}
 			continue;
 		} if(fd == S->recvctrl_fd){  //TODO SERVER_CMD
 			continue;
 		} else {
+			_recv(sock_ctx_ptr);
 			//TODO handle msg here
 		}
 	}

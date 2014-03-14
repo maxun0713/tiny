@@ -91,7 +91,7 @@ int start() {
 	tlog(LOG_LEVEL_DEBUG, "test%d",123);
 
 	tserver_init(config.port, config.addr);
-
+	tserver_poll();
 
 	return TINY_OK;
 }

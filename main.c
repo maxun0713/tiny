@@ -129,7 +129,7 @@ main(int argc, char** argv)
 	config.daemonlized = _env_optint("daemon", 0);
 	config.nthread = _env_optint("worker", 2);
 	config.logpath = _env_optstring("logpath", "./");
-	config.port = _env_optint("port", 10086);
+	config.port = _env_optint("port", 27017);
 	config.addr = _env_optstring("addr", "127.0.0.1");
 
 	start();
