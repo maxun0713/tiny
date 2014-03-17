@@ -70,7 +70,7 @@ struct tiny_server_command {
 struct tiny_server* S = NULL;
 
 static void
-_init_slot(struct socket* slot, int fd, int type) {
+_init_conn(struct socket* slot, int fd, int type) {
 	T_ERROR_VOID(slot)
 	slot->fd =  fd;
 	slot->type = type;
@@ -131,7 +131,7 @@ tserver_start_listen(struct tiny_server* server_ptr, short port, const char *add
 
 	T_ERROR_VAL(listen(server_ptr->listenfd, 1024) == 0)
 
-	_init_slot(&server_ptr->slot[server_ptr->listenfd],
+	_init_conn(&server_ptr->slot[server_ptr->listenfd],
 			server_ptr->listenfd,
 			SOCKET_TYPE_LISTEN);
 
@@ -239,7 +239,7 @@ tserver_poll(){
 		if(fd == S->listenfd) {
 			ret = _accept(fd);
 			if(ret >0 ) {
-				_init_slot(&S->slot[ret], ret, SOCKET_TYPE_CONN);
+				_init_conn(&S->slot[ret], ret, SOCKET_TYPE_CONN);
 				if(sp_add(S->epfd, ret, &S->slot[ret])){
 					tlog(LOG_LEVEL_ERROR, "error in sp_add:[%s]", strerror(errno));
 				}
