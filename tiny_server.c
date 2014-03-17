@@ -48,7 +48,7 @@ struct tiny_server {
 
 	struct event  ev[MAX_EVENT];
 	struct socket slot[MAX_SOCKET];
-	char   buffer[DEFAULT_BUF_SIZE];
+	//char   buffer[DEFAULT_BUF_SIZE];
 };
 
 struct request_start {
@@ -85,7 +85,7 @@ static int
 _reset_conn(struct socket* ctx){
 	T_ERROR_VAL(ctx)
 	if(ctx->fd>0){
-		close(ctx->fd);
+		sp_release(ctx->fd);
 	}
 	ctx->fd = -1;
 	ctx->token = 0;
@@ -97,9 +97,9 @@ _reset_conn(struct socket* ctx){
 		p = buffer_ptr;
 		buffer_ptr = buffer_ptr->next;
 		if(p->buffer){
-			free(p->buffer);
+			tfree(p->buffer);
 		}
-		free(p);
+		tfree(p);
 		ctx->wb_size --;
 	}
 
@@ -153,9 +153,9 @@ tserver_init(short port, const char* addr){
 	ret = tserver_start_listen(ptr, port, addr);
 	if(ret ||
 		sp_add(ptr->epfd, ptr->listenfd, &ptr->slot[ptr->listenfd])){
-		close(ptr->recvctrl_fd);
-		close(ptr->sendctrl_fd);
-		close(ptr->epfd);
+		sp_release(ptr->recvctrl_fd);
+		sp_release(ptr->sendctrl_fd);
+		sp_release(ptr->epfd);
 		tfree(ptr);
 		return TINY_ERROR;
 	}
@@ -194,6 +194,7 @@ _accept(int fd){
 	if(ret <=0) {
 		tlog(LOG_LEVEL_ERROR, "error in accept conn:[%s]", strerror(errno));
 	}else{
+		sp_nonblocking(ret);
 		tlog(LOG_LEVEL_RELEASE, "recv conn from %s", inet_ntoa(cliaddr.sin_addr));
 	}
 
@@ -211,9 +212,9 @@ _recv(struct socket* ctx){
 	tmp[n]= '\0';
 	printf("%s", tmp);
 
-	n = send(fd, tmp, sizeof(tmp), 0);
-	close(fd);
-	_reset_conn(ctx);
+	n = send(fd, tmp, n, 0);
+	//close(fd);
+	//_reset_conn(ctx);
 //	int n = recv(fd, &len, sizeof(len));
 //	len = ntohs(len);
 //	if(len <0 || len > 0xffff){
@@ -222,11 +223,32 @@ _recv(struct socket* ctx){
 	return TINY_OK;
 }
 
+int
+tserver_shutdown(){
+	T_ERROR_VAL(S)
+	int flag = TINY_OK;
+	int i;
+	if(!sp_invalid(S->epfd)){
+		sp_release(S->epfd);
+	}
 
+	if(!sp_invalid(S->listenfd)){
+		sp_release(S->listenfd);
+	}
+
+	for(i = 0; i< MAX_SOCKET; i++){
+		if(_reset_conn(&S->slot[i])){
+			flag = TINY_ERROR;
+		}
+	}
+
+	return flag;
+}
 
 
 int
 tserver_poll(){
+	T_ERROR_VAL(S)
 	int n = sp_wait(S->epfd, S->ev, MAX_EVENT);
 	struct event* ev_ptr = NULL;
 	struct socket* sock_ctx_ptr = NULL;
@@ -242,14 +264,17 @@ tserver_poll(){
 				_init_conn(&S->slot[ret], ret, SOCKET_TYPE_CONN);
 				if(sp_add(S->epfd, ret, &S->slot[ret])){
 					tlog(LOG_LEVEL_ERROR, "error in sp_add:[%s]", strerror(errno));
+					_reset_conn(sock_ctx_ptr);
 				}
 			}
 			continue;
-		} else if(fd == S->recvctrl_fd){  //TODO SERVER_CMD
+		} else if(fd == S->recvctrl_fd){
+			//TODO SERVER_CMD
 			continue;
 		} else {
 			if(_recv(sock_ctx_ptr) <0)
 			{
+				sp_del(S->epfd, fd);
 				_reset_conn(sock_ctx_ptr);
 			}
 		}
