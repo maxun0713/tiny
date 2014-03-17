@@ -10,6 +10,8 @@
 #include "tiny_logger.h"
 #include "tiny_server.h"
 #include "tiny_module.h"
+#include "tiny_worker.h"
+#include "tiny_alloc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -94,8 +96,12 @@ start() {
 	T_ERROR_VAL(tlogger_init(config.logpath, LOG_LEVEL_DEBUG) == TINY_OK)
 	T_ERROR_VAL(tserver_init(config.port, config.addr) == TINY_OK)
 
-	for(i =0; i< config.nthread; i++){
 
+	config.nthread = 1;
+	workers = talloc(config.nthread * sizeof(struct tiny_worker*));
+	for(i =0; i< config.nthread; i++){
+		workers[i] = tworker_new(NULL);
+		tworker_run(workers[i]);
 	}
 
 	while(1){

@@ -9,6 +9,7 @@
 #include "tiny_alloc.h"
 #include "tiny_assert.h"
 #include "tiny_logger.h"
+#include "tiny_worker.h"
 #include "socket_poll.h"
 #include <unistd.h>
 #include <errno.h>
@@ -202,21 +203,18 @@ _recv(struct socket* ctx){
 	T_ERROR_VAL(ctx)
 	//unsigned short len;
 	int fd = ctx->fd;
-	char tmp[10240];
-	int n = recv(fd, tmp, sizeof(tmp), 0);
-	tmp[n]= '\0';
-	printf("%s", tmp);
+	struct write_buffer* wb = talloc(sizeof(*wb));
+	wb->buffer = talloc(sizeof(1024));
+	int n = recv(fd, wb->buffer, 1024, 0);
+	send(fd, wb->buffer, n, 0);
+	wb->buffer[n]= '\0';
+	wb->sz = n+1;
 
-	n = send(fd, tmp, n, 0);
-	//close(fd);
-	//_reset_conn(ctx);
-//	int n = recv(fd, &len, sizeof(len));
-//	len = ntohs(len);
-//	if(len <0 || len > 0xffff){
-//		tlog(LOG_LEVEL_ERROR, "error in recv msg:[invalid len%d]", len);
-//	}
+	tworker_transfer_msg(workers[0], wb);
+
 	return TINY_OK;
 }
+
 
 int
 tserver_shutdown(){

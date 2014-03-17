@@ -16,11 +16,6 @@
 typedef void* (*msg_handler)(void* arg);
 typedef enum WORKER_STATUS worker_staus;
 
-struct tiny_worker_parm{
-	pthread_mutex_t  mutex;
-	pthread_cond_t  cond;
-};
-
 
 struct tiny_worker{
 	pthread_t  id;
@@ -30,11 +25,18 @@ struct tiny_worker{
 	int lock;
 	struct write_buffer* head;
 	struct write_buffer* tail;
-	struct tiny_worker_parm* wp;
+	pthread_mutex_t  mutex;
+	pthread_cond_t  cond;
+	pthread_attr_t  attr;
 };
 
-struct tiny_worker* tworker_new(msg_handler handler, struct tiny_worker_parm* wp);
+struct tiny_worker** workers;
+
+struct tiny_worker* tworker_new(msg_handler handler);
 int	   tworker_run(struct tiny_worker* w);
 int	   tworker_stop(struct tiny_worker* w);
+int    tworker_transfer_msg(struct tiny_worker* w, struct write_buffer* buffer);
+
+
 
 #endif /* TINY_WORKER_H_ */
