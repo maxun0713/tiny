@@ -23,7 +23,7 @@ struct tiny_module {
 };
 
 void tmodule_init(const char* path);
-
+struct tiny_module*  tmodule_query(const char* name);
 
 
 void* tmodule_inst_create(struct tiny_module* m);

@@ -54,13 +54,13 @@ sp_del(poll_fd fd, int sock){
     epoll_ctl(fd, EPOLL_CTL_DEL, sock, NULL);
 }
 
-static void 
-sp_write(poll_fd fd, int sock, void *ud, bool enable){
-    struct epoll_event ev;
-    ev.events = EPOLLIN | (enable ? EPOLLOUT :0);
-    ev.data.ptr = ud;
-    epoll_ctl(fd, EPOLL_CTL_MOD, sock, &ev);
-}
+//static void
+//sp_write(poll_fd fd, int sock, void *ud, bool enable){
+//    struct epoll_event ev;
+//    ev.events = EPOLLIN | (enable ? EPOLLOUT :0);
+//    ev.data.ptr = ud;
+//    epoll_ctl(fd, EPOLL_CTL_MOD, sock, &ev);
+//}
 
 static int sp_wait(poll_fd fd, struct event *e, int max){
     struct epoll_event ev[max];

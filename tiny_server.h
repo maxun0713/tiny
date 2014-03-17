@@ -7,7 +7,7 @@
 
 #ifndef TINY_SERVER_H_
 #define TINY_SERVER_H_
-
+#include "tiny_types.h"
 
 
 int tserver_init(short port, const char* addr);

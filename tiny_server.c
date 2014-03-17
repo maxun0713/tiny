@@ -23,11 +23,6 @@
 #define MAX_SOCKET 102400
 #define DEFAULT_BUF_SIZE 0xfffff
 
-struct write_buffer {
-	struct write_buffer * next;
-	int sz;
-	void *buffer;
-};
 
 struct socket {
 	int fd;
@@ -205,7 +200,7 @@ _accept(int fd){
 static int
 _recv(struct socket* ctx){
 	T_ERROR_VAL(ctx)
-	unsigned short len;
+	//unsigned short len;
 	int fd = ctx->fd;
 	char tmp[10240];
 	int n = recv(fd, tmp, sizeof(tmp), 0);

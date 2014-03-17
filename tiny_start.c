@@ -9,6 +9,7 @@
 #include "tiny_config.h"
 #include "tiny_logger.h"
 #include "tiny_server.h"
+#include "tiny_module.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -80,16 +81,23 @@ int _set_system_parms(){
 	return setrlimit(RLIMIT_CORE, &rlim_core);
 }
 
-int start() {
+int
+start() {
+	int i;
 	T_ERROR_VAL(_set_system_parms() == TINY_OK)
 	T_ERROR_VAL(_save_pid() == TINY_OK)
 	if(config.daemonlized) {
 		_daemonlized();
 	}
 
+	tmodule_init(config.addr);
 	T_ERROR_VAL(tlogger_init(config.logpath, LOG_LEVEL_DEBUG) == TINY_OK)
+	T_ERROR_VAL(tserver_init(config.port, config.addr) == TINY_OK)
 
-	tserver_init(config.port, config.addr);
+	for(i =0; i< config.nthread; i++){
+
+	}
+
 	while(1){
 		tserver_poll();
 	}
