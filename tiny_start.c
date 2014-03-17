@@ -88,10 +88,11 @@ int start() {
 	}
 
 	T_ERROR_VAL(tlogger_init(config.logpath, LOG_LEVEL_DEBUG) == TINY_OK)
-	tlog(LOG_LEVEL_DEBUG, "test%d",123);
 
 	tserver_init(config.port, config.addr);
-	tserver_poll();
+	while(1){
+		tserver_poll();
+	}
 
 	return TINY_OK;
 }
