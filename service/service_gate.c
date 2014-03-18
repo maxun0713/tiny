@@ -7,6 +7,7 @@
 
 
 #include "service_gate.h"
+#include "tiny_types.h"
 #include <stdio.h>
 
 void*
@@ -21,6 +22,8 @@ int gate_init(void* inst, const char * parm){
 
 
 void* gate_handle(void* arg){
+	struct write_buffer* buffer = (struct write_buffer*)arg;
+	printf("%s\n", (char*)buffer->buffer);
 	return NULL;
 }
 
