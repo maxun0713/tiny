@@ -7,7 +7,7 @@
 
 
 #include "service_gate.h"
-#include "tiny_types.h"
+#include "../tiny_types.h"
 #include <stdio.h>
 
 void*
