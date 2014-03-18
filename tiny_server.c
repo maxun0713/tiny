@@ -205,7 +205,7 @@ _recv(struct socket* ctx){
 	struct write_buffer* wb = talloc(sizeof(*wb));
 	wb->buffer = talloc(sizeof(1024));
 	int n = recv(fd, wb->buffer, 1024, 0);
-	if(n < 0){
+	if(n <= 0){
 		tfree(wb->buffer);
 		tfree(wb);
 		return n;
@@ -213,6 +213,7 @@ _recv(struct socket* ctx){
 
 	wb->buffer[n]= '\0';
 	wb->sz = n+1;
+	wb->next = NULL;
 	send(fd, wb->buffer, n+1, 0);
 
 	tworker_transfer_msg(workers[0], wb);
@@ -268,7 +269,7 @@ tserver_poll(){
 		} else if(fd == S->recvctrl_fd){
 			//TODO SERVER_CMD
 		} else {
-			if(_recv(sock_ctx_ptr) <0)
+			if(_recv(sock_ctx_ptr) <= 0)
 			{
 				sp_del(S->epfd, fd);
 				_reset_conn(sock_ctx_ptr);

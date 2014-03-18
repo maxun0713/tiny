@@ -130,7 +130,7 @@ main(int argc, char** argv)
 	config.nthread = _env_optint("worker", 2);
 	config.logpath = _env_optstring("logpath", "./");
 	config.port = _env_optint("port", 27017);
-	config.addr = _env_optstring("addr", "127.0.0.1");
+	config.addr = _env_optstring("servicedir", "../service");
 
 	start();
 

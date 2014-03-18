@@ -14,6 +14,7 @@ struct tiny_config {
 	const char* logpath;
 	short port;
 	const char* addr;
+	const char* servicedir;
 };
 
 struct tiny_config config;

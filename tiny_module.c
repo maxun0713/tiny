@@ -32,6 +32,7 @@ tmodule_init(const char* path) {
 	struct modules* m = talloc(sizeof(*m));
 	m->count = 0;
 	m->path = strdup(path);
+	m->lock = 0;
 	M = m;
 }
 
@@ -57,8 +58,9 @@ _try_open(struct modules* m, const char* name){
 	T_ERROR_PTR(name)
 
 	char tmp[MAX_MODULE_PATH_LENGTH];
-	int n = snprintf(tmp, MAX_MODULE_PATH_LENGTH, "%s/%s.so", m->path, name);
+	int n = snprintf(tmp, MAX_MODULE_PATH_LENGTH, "%s/lib%s.so", m->path, name);
 	T_ERROR_PTR(n < MAX_MODULE_PATH_LENGTH)
+	tmp[n] = '\0';
 
 	void* dl = dlopen(tmp, RTLD_NOW | RTLD_GLOBAL);
 	if (dl == NULL) {

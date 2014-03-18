@@ -12,6 +12,7 @@
 #include "tiny_module.h"
 #include "tiny_worker.h"
 #include "tiny_alloc.h"
+#include "tiny_signal.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -92,10 +93,12 @@ start() {
 		_daemonlized();
 	}
 
-	tmodule_init(config.addr);
+
 	T_ERROR_VAL(tlogger_init(config.logpath, LOG_LEVEL_DEBUG) == TINY_OK)
 	T_ERROR_VAL(tserver_init(config.port, config.addr) == TINY_OK)
-
+	T_ERROR_VAL(tsignal_init() == TINY_OK)
+	tmodule_init(config.addr);
+	struct tiny_module* mod = tmodule_query("gate");
 
 	config.nthread = 1;
 	workers = talloc(config.nthread * sizeof(struct tiny_worker*));
