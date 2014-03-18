@@ -44,7 +44,6 @@ struct tiny_server {
 
 	struct event  ev[MAX_EVENT];
 	struct socket slot[MAX_SOCKET];
-	//char   buffer[DEFAULT_BUF_SIZE];
 };
 
 struct request_start {
@@ -206,9 +205,15 @@ _recv(struct socket* ctx){
 	struct write_buffer* wb = talloc(sizeof(*wb));
 	wb->buffer = talloc(sizeof(1024));
 	int n = recv(fd, wb->buffer, 1024, 0);
-	send(fd, wb->buffer, n, 0);
+	if(n < 0){
+		tfree(wb->buffer);
+		tfree(wb);
+		return n;
+	}
+
 	wb->buffer[n]= '\0';
 	wb->sz = n+1;
+	send(fd, wb->buffer, n+1, 0);
 
 	tworker_transfer_msg(workers[0], wb);
 
@@ -260,10 +265,8 @@ tserver_poll(){
 					_reset_conn(sock_ctx_ptr);
 				}
 			}
-			continue;
 		} else if(fd == S->recvctrl_fd){
 			//TODO SERVER_CMD
-			continue;
 		} else {
 			if(_recv(sock_ctx_ptr) <0)
 			{

@@ -112,6 +112,7 @@ int
 tworker_transfer_msg(struct tiny_worker* w, struct write_buffer* buffer){
 	T_ERROR_VAL(w)
 	T_ERROR_VAL(buffer)
+
 	pthread_mutex_lock(&w->mutex);
 	if(!w->head)
 	{
