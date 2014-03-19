@@ -125,6 +125,7 @@ tserver_start_listen(struct tiny_server* server_ptr, short port, const char *add
 	T_ERROR_VAL(setsockopt(server_ptr->listenfd, SOL_SOCKET, SO_LINGER, &ling, sizeof(ling)) == 0)
 
 	T_ERROR_VAL(listen(server_ptr->listenfd, 1024) == 0)
+	tlog(LOG_LEVEL_ERROR, "tinyserver start listening %s:%d", addr,port);
 
 	_init_conn(&server_ptr->slot[server_ptr->listenfd],
 			server_ptr->listenfd,
@@ -203,7 +204,7 @@ _recv(struct socket* ctx){
 	//unsigned short len;
 	int fd = ctx->fd;
 	struct write_buffer* wb = talloc(sizeof(*wb));
-	wb->buffer = talloc(sizeof(1024));
+	wb->buffer = talloc(1024);
 	int n = recv(fd, wb->buffer, 1024, 0);
 	if(n <= 0){
 		tfree(wb->buffer);
@@ -211,10 +212,12 @@ _recv(struct socket* ctx){
 		return n;
 	}
 
-	wb->buffer[n]= '\0';
+	if(n< 1024){
+		wb->buffer[n]= '\0';
+	}
 	wb->sz = n+1;
 	wb->next = NULL;
-	send(fd, wb->buffer, n+1, 0);
+	send(fd, wb->buffer, n, 0);
 
 	tworker_transfer_msg(workers[0], wb);
 
@@ -248,11 +251,22 @@ tserver_shutdown(){
 int
 tserver_poll(){
 	T_ERROR_VAL(S)
-	int n = sp_wait(S->epfd, S->ev, MAX_EVENT);
 	struct event* ev_ptr = NULL;
 	struct socket* sock_ctx_ptr = NULL;
 	int fd;
 	int i,ret;
+	int n = sp_wait(S->epfd, S->ev, MAX_EVENT);
+
+	if(n <0){
+		if(errno == EINTR){
+			return TINY_OK;
+		} else
+		{
+			tlog(LOG_LEVEL_ERROR ,"sp_wait error:%s",strerror(errno));
+			return TINY_ERROR;
+		}
+	}
+
 	for(i = 0; i< n; i++){
 		ev_ptr = &(S->ev[i]);
 		sock_ctx_ptr = (struct socket*)ev_ptr->s;

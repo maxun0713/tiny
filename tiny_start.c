@@ -64,7 +64,7 @@ static
 int _save_pid() {
 	pid_t pid = getpid();
 	char tmp[16];
-	FILE *fp = fopen("csp_server.pid", "w");
+	FILE *fp = fopen("tinyserver.pid", "w");
 	T_ERROR_VAL(fp)
 	int n = snprintf(tmp, sizeof(tmp), "%d", pid);
 	fwrite(tmp, sizeof(char), n, fp);
@@ -93,11 +93,10 @@ start() {
 		_daemonlized();
 	}
 
-
 	T_ERROR_VAL(tlogger_init(config.logpath, LOG_LEVEL_DEBUG) == TINY_OK)
 	T_ERROR_VAL(tserver_init(config.port, config.addr) == TINY_OK)
 	T_ERROR_VAL(tsignal_init() == TINY_OK)
-	tmodule_init(config.addr);
+	tmodule_init(config.servicedir);
 	struct tiny_module* mod = tmodule_query("gate");
 
 	config.nthread = 1;

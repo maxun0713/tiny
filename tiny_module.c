@@ -75,16 +75,16 @@ int
 _open_sym(struct tiny_module* mod){
 	T_ERROR_VAL(mod)
 	size_t name_size = strlen(mod->name);
-	char tmp[name_size + 9]; // create/init/release , longest name is release (7)
+	char tmp[name_size + 9]; // create/init/release/handle , longest name is release (7)
 	memcpy(tmp, mod->name, name_size);
 	strcpy(tmp+name_size, "_create");
 	mod->create = dlsym(mod->module, tmp);
 	strcpy(tmp+name_size, "_init");
 	mod->init = dlsym(mod->module, tmp);
-	strcpy(tmp+name_size, "_release");
-	mod->release = dlsym(mod->module, tmp);
 	strcpy(tmp+name_size, "_handle");
 	mod->handle = dlsym(mod->module, tmp);
+	strcpy(tmp+name_size, "_release");
+	mod->release = dlsym(mod->module, tmp);
 
 	return mod->init == NULL;
 }

@@ -85,6 +85,17 @@ tlogger_release(){
 
 void
 tlog(int level, const char* format,...){
+#ifndef REL
+	char tmp1[1024];
+	va_list args;
+	va_start(args, format);
+	va_end(args);
+	vsnprintf(tmp1, sizeof(tmp1), format, args);
+	printf("%s\n", tmp1);
+	return ;
+#endif
+
+
 	T_ERROR_VOID(L)
 	T_ERROR_VOID(L->fp)
 
