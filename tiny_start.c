@@ -98,6 +98,7 @@ start() {
 	T_ERROR_VAL(tsignal_init() == TINY_OK)
 	tmodule_init(config.servicedir);
 	struct tiny_module* mod = tmodule_query("gate");
+	T_ERROR_VAL(mod)
 
 	config.nthread = 1;
 	workers = talloc(config.nthread * sizeof(struct tiny_worker*));
@@ -108,6 +109,11 @@ start() {
 
 	while(1){
 		tserver_poll();
+	}
+
+	for(i = 0;i <config.nthread; i++){
+		tworker_stop(workers[i]);
+		tworker_desrtoy(workers[i]);
 	}
 
 	return TINY_OK;

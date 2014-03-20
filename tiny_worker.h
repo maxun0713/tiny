@@ -10,11 +10,13 @@
 
 #include "tiny_constdef.h"
 #include "tiny_types.h"
+#include "tiny_msg.h"
 #include <pthread.h>
 #include <time.h>
 
 typedef void* (*msg_handler)(void* arg);
 typedef enum WORKER_STATUS worker_staus;
+typedef struct tiny_worker tworker;
 
 
 struct tiny_worker{
@@ -23,8 +25,7 @@ struct tiny_worker{
 	msg_handler  handler;
 	worker_staus status;
 	int lock;
-	struct write_buffer* head;
-	struct write_buffer* tail;
+	tmsg_queue* queue;
 	pthread_mutex_t  mutex;
 	pthread_cond_t  cond;
 	pthread_attr_t  attr;
@@ -33,9 +34,10 @@ struct tiny_worker{
 struct tiny_worker** workers;
 
 struct tiny_worker* tworker_new(msg_handler handler);
-int	   tworker_run(struct tiny_worker* w);
-int	   tworker_stop(struct tiny_worker* w);
-int    tworker_transfer_msg(struct tiny_worker* w, struct write_buffer* buffer);
+int	   tworker_run(tworker* w);
+int	   tworker_stop(tworker* w);
+int    tworker_transfer_msg(tworker* w, tmsg* buffer);
+void   tworker_desrtoy(tworker* w);
 
 
 

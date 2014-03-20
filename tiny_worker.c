@@ -13,12 +13,12 @@
 
 
 void* _test(void* arg){
-	struct write_buffer* buffer = (struct write_buffer*)arg;
-	printf("%s\n", (char*)buffer->buffer);
+	tmsg* msg = (tmsg*)arg;
+	printf("%s\n", (char*)msg->data);
 	return NULL;
 }
 
-struct tiny_worker*
+tworker*
 tworker_new(msg_handler handler){
 	//T_ERROR_PTR(handler)
 
@@ -29,7 +29,7 @@ tworker_new(msg_handler handler){
 	w->starttime = -1;
 	w->status = WORKER_STATUS_IDLE;
 	w->lock = 0;
-	w->head = w->tail = NULL;
+	w->queue = tmsg_queue_new();
 	pthread_mutex_init(&w->mutex, NULL);
 	pthread_cond_init(&w->cond, NULL);
 	pthread_attr_init(&w->attr);
@@ -40,9 +40,10 @@ tworker_new(msg_handler handler){
 }
 
 
-void cond_block(struct tiny_worker* w){
+void
+cond_block(tworker* w){
 	pthread_mutex_lock(&w->mutex);
-	if(w->head == NULL|| w->status == WORKER_STATUS_STOPPED){
+	if(tmsg_queue_empty(w->queue) || w->status == WORKER_STATUS_STOPPED){
 		if(w->status == WORKER_STATUS_STOPPED){
 			pthread_mutex_unlock(&w->mutex);
 			pthread_exit(NULL);
@@ -55,7 +56,8 @@ void cond_block(struct tiny_worker* w){
 }
 
 
-void* _work(void* arg){
+void*
+_work(void* arg){
 	struct tiny_worker* w= (struct tiny_worker*)arg;
 	T_ERROR_PTR(w);
 	while(__sync_lock_test_and_set(&w->lock,1)) {}   //insure lock is modified
@@ -65,10 +67,11 @@ void* _work(void* arg){
 		cond_block(w);
 
 		pthread_mutex_lock(&w->mutex);
-		if(w->head != NULL){
-			struct write_buffer* p = w->head;
-			w->head = w->head->next;
-			w->handler(p);
+		tmsg msg;
+		int ret = tmsg_queue_pop(w->queue, &msg);
+		if(ret == TINY_OK && w->handler)
+		{
+			w->handler(&msg);
 		}
 		pthread_mutex_unlock(&w->mutex);
 	}
@@ -77,7 +80,8 @@ void* _work(void* arg){
 }
 
 
-int tworker_run(struct tiny_worker* w){
+int
+tworker_run(tworker* w){
 	T_ERROR_VAL(w)
 	T_ERROR_VAL(w->status != WORKER_STATUS_RUNNING)
 
@@ -93,7 +97,8 @@ int tworker_run(struct tiny_worker* w){
 }
 
 
-int	tworker_stop(struct tiny_worker* w){
+int
+tworker_stop(tworker* w){
 	while(__sync_lock_test_and_set(&w->lock,1)) {}
 	w->status = WORKER_STATUS_STOPPED;
 	__sync_lock_release(&w->lock);
@@ -109,22 +114,24 @@ int	tworker_stop(struct tiny_worker* w){
 
 
 int
-tworker_transfer_msg(struct tiny_worker* w, struct write_buffer* buffer){
+tworker_transfer_msg(tworker* w, tmsg* msg){
 	T_ERROR_VAL(w)
-	T_ERROR_VAL(buffer)
+	T_ERROR_VAL(msg)
 
 	pthread_mutex_lock(&w->mutex);
-	if(!w->head)
-	{
-		w->head = buffer;
-		w->tail = buffer;
-	} else {
-		w->tail->next = buffer;
-		w->tail = w->tail->next;
-	}
+	int ret = tmsg_queue_push(w->queue, msg);
 
 	pthread_cond_signal(&w->cond);
 	pthread_mutex_unlock(&w->mutex);
 
-	return 0;
+	return ret;
+}
+
+
+void
+tworker_desrtoy(tworker* w){
+	if(w){
+		tmsg_queue_destroy(w->queue);
+		tfree(w);
+	}
 }

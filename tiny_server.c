@@ -29,10 +29,7 @@ struct socket {
 	int fd;
 	int type;
 	time_t token;
-	int64_t wb_size;
 	uintptr_t opaque;
-	struct write_buffer * head;
-	struct write_buffer * tail;
 };
 
 struct tiny_server {
@@ -69,11 +66,7 @@ _init_conn(struct socket* slot, int fd, int type) {
 	T_ERROR_VOID(slot)
 	slot->fd =  fd;
 	slot->type = type;
-	slot->head = NULL;
-	slot->tail = NULL;
 	slot->token = time(NULL);
-	slot->wb_size = 0;
-	//TODO free buffer
 }
 
 static int
@@ -86,20 +79,20 @@ _reset_conn(struct socket* ctx){
 	ctx->token = 0;
 	ctx->type = SOCKET_TYPE_CLOSED;
 
-	struct write_buffer* buffer_ptr = ctx->head;
-	struct write_buffer* p;
-	while(buffer_ptr ){
-		p = buffer_ptr;
-		buffer_ptr = buffer_ptr->next;
-		if(p->buffer){
-			tfree(p->buffer);
-		}
-		tfree(p);
-		ctx->wb_size --;
-	}
-
-	ctx->head = ctx->tail = NULL;
-	T_ERROR_VAL(ctx->wb_size==0)
+//	struct write_buffer* buffer_ptr = ctx->head;
+//	struct write_buffer* p;
+//	while(buffer_ptr ){
+//		p = buffer_ptr;
+//		buffer_ptr = buffer_ptr->next;
+//		if(p->buffer){
+//			tfree(p->buffer);
+//		}
+//		tfree(p);
+//		ctx->wb_size --;
+//	}
+//
+//	ctx->head = ctx->tail = NULL;
+//	T_ERROR_VAL(ctx->wb_size==0)
 
 	return TINY_OK;
 }
@@ -203,23 +196,26 @@ _recv(struct socket* ctx){
 	T_ERROR_VAL(ctx)
 	//unsigned short len;
 	int fd = ctx->fd;
-	struct write_buffer* wb = talloc(sizeof(*wb));
-	wb->buffer = talloc(1024);
-	int n = recv(fd, wb->buffer, 1024, 0);
+	tmsg* msg = malloc(sizeof(*msg));
+	msg->data = malloc(1024);
+	msg->header.index = fd;
+	msg->header.extra.timestamp = ctx->token;
+	msg->header.type = 0;
+
+	int n = recv(fd, msg->data, 1024, 0);
 	if(n <= 0){
-		tfree(wb->buffer);
-		tfree(wb);
+		tfree(msg->data);
+		tfree(msg);
 		return n;
 	}
 
 	if(n< 1024){
-		wb->buffer[n]= '\0';
+		((char*)msg->data)[n]= '\0';
 	}
-	wb->sz = n+1;
-	wb->next = NULL;
-	send(fd, wb->buffer, n, 0);
+	msg->sz = n+1;
+	send(fd, msg->data, n, 0);
 
-	tworker_transfer_msg(workers[0], wb);
+	tworker_transfer_msg(workers[0], msg);
 
 	return TINY_OK;
 }
